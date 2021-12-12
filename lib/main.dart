@@ -1,5 +1,29 @@
-import 'package:flutter/material.dart';
 
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+Future<VirusCase> getJson(http.Client client) async{
+  final res = await client.get(Uri.parse("https://opendata.cwb.gov.tw/api/v1/rest/datastore/W-C0033-002?Authorization=CWB-EDE00A65-CA8D-48E6-B85C-E2895E317484"));
+  return VirusCase.fromjson(jsonDecode(res.body));
+}
+
+class VirusCase{
+  final String title;
+  final String url;
+  const VirusCase({
+    required this.title,
+    required this.url
+  });
+
+  factory VirusCase.fromjson(Map<String,dynamic> datas){
+    return VirusCase(
+      title: datas["records"]["record"][0]["datasetInfo"]["datasetDescription"] ,
+      url: datas["records"]["record"][0]["datasetInfo"]["validTime"]["endTime"] 
+    );
+  }    
+}
 void main() {
   runApp(const MyApp());
 }
@@ -30,13 +54,27 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
-        backgroundColor: null,
       ),
-      body: Column(
-        children: const [
-          Text('data'),
-        ],
-      ),       
+      body: FutureBuilder<VirusCase>(
+        future: getJson(http.Client()),
+        builder: (context,snapshot){
+          if(snapshot.hasError){
+            return const Center(child: Text('Error'),);
+          }else if(snapshot.hasData){
+            
+            return ListView.builder(
+              itemCount: 20,
+              itemBuilder: (context,index){
+                return ListTile(
+                  title: Text(snapshot.data!.title),
+                );
+              },
+            );
+          }else{
+            return const CircularProgressIndicator();
+          }
+        }),       
     );
   }
 }
+
