@@ -2,28 +2,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
+import 'Models/warning.dart';
 import 'package:flutter/foundation.dart';
-Future<VirusCase> getJson(http.Client client) async{
-  final res = await client.get(Uri.parse("https://opendata.cwb.gov.tw/api/v1/rest/datastore/W-C0033-002?Authorization=CWB-EDE00A65-CA8D-48E6-B85C-E2895E317484"));
-  return VirusCase.fromjson(jsonDecode(res.body));
-}
 
-class VirusCase{
-  final String title;
-  final String url;
-  const VirusCase({
-    required this.title,
-    required this.url
-  });
-
-  factory VirusCase.fromjson(Map<String,dynamic> datas){
-    return VirusCase(
-      title: datas["records"]["record"][0]["datasetInfo"]["datasetDescription"] ,
-      url: datas["records"]["record"][0]["datasetInfo"]["validTime"]["endTime"] 
-    );
-  }    
-}
 void main() {
   runApp(const MyApp());
 }
@@ -36,7 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: '天氣'),
     );
   }
 }
@@ -53,7 +34,8 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.title),
+        backgroundColor: Colors.black,
+        title: Text(widget.title,),
       ),
       body: FutureBuilder<VirusCase>(
         future: getJson(http.Client()),
@@ -62,16 +44,22 @@ class _MyHomePageState extends State<MyHomePage> {
             return const Center(child: Text('Error'),);
           }else if(snapshot.hasData){
             
-            return ListView.builder(
-              itemCount: 20,
-              itemBuilder: (context,index){
-                return ListTile(
-                  title: Text(snapshot.data!.title),
-                );
-              },
+            return RefreshIndicator(
+              onRefresh: ()=>getJson(http.Client()),
+              child: ListView.builder(
+                itemCount: snapshot.data!.local.length,
+                itemBuilder: (context,index){
+                  var temp=snapshot.data!.local[index]["hazardConditions"]["hazards"];
+                  return ListTile(
+                    onTap: (){},
+                    title: Text(snapshot.data!.local[index]["locationName"]),
+                    subtitle: temp.length!=0? Text(temp[0]["info"]["phenomena"]):null,
+                  );
+                },
+              ),
             );
           }else{
-            return const CircularProgressIndicator();
+            return const Center(child: CircularProgressIndicator());
           }
         }),       
     );
